@@ -7,6 +7,7 @@ output: github_document
 
 ```{r setup, include=FALSE}
 library(tidyverse)
+library(purrr)
 
 ```
 
@@ -107,7 +108,62 @@ result_df %>%
 ### Problem 2:
 
 ```{r}
+long_study_df = tibble(
+  filename = list.files("./data")) %>% 
+  mutate(data = map(str_c("./data/", filename), read_csv)) %>% 
+  unnest(data) %>% 
+  mutate( 
+    arm=substr(filename, 1, 3), 
+    subject_id=(substr(filename, 1, 6))) %>% 
+    select(arm, subject_id, everything(), -filename) 
+  
+
+long_clean_df = 
+  long_study_df %>% 
+    pivot_longer(cols = "week_1":"week_8",
+               names_to = "week", 
+               values_to = "result"
+               ) %>% 
+    mutate(
+      week = str(replace(week, "week_", ""), 
+      week = as.numeric(week))) 
+
+
 
 
 ```
+
+
+### Problem 3: 
+
+```{r}
+set.seed(10)
+
+iris_with_missing = iris %>% 
+  map_df(~replace(.x, sample(1:150, 20), NA)) %>%
+  mutate(Species = as.character(Species))
+
+```
+
+Writing function
+```{r}
+iris_missing_function = function(x) {
+  if (is_numeric(x)) {
+    mean_nonmissing = round(mean(x, na.rm = TRUE, 1))
+    x = replace_na(x, mean_nonmissing)}
+  else if (is.character(x)) {
+    x = replace_na(x, "virginica")}
+  return(x)
+}
+
+iris_fillin = 
+  map_df(iris_with_missing, iris_missing_function) %>% 
+  as.tibble()
+
+knitr::kable(iris_fillin)
+
+view(iris_fillin)
+
+```
+
 
