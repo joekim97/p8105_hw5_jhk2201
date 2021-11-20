@@ -6,25 +6,104 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
 ```
 
-## R Markdown
+### Problem 1
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+##### Importing Dataset 
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
+
+```{r}
+homicide_df = 
+  read_csv("/Users/josephkim/Desktop/p8105_hw5_jhk2201/homicide-data.csv", na = c("", "Unknown")) %>%
+  mutate(
+    city_state = str_c(city,state),
+    resolution = case_when(
+      disposition == "Closed without arrest" ~ "unsolved",
+      disposition == "Open/No arrest" ~ "unsolved",
+      disposition == "Closed by arrest" ~ "solved"
+    )) %>%
+  relocate(city_state) %>%
+  filter(city_state != "TulsaAL")
+
 ```
 
-## Including Plots
+The raw data is has 52,179 rows of data, with 12 variables. 
+reported_date, lat, and lon are number variables, with the rest being characters. 
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+baltimore_df = homicide_df %>% 
+    filter(city_state == "BaltimoreMD") 
+
+baltimore_summary =
+  baltimore_df %>% 
+    summarize(
+      unsolved = sum(resolution == "unsolved"), 
+      n=n()
+  )
+
+baltimore_test = 
+  prop.test(
+    x = baltimore_summary %>%  pull(unsolved), 
+    n = baltimore_summary %>%  pull(n))
+
+baltimore_test %>% 
+  broom::tidy()
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Iterating across cities
+
+```{r}
+prop_test_function = function(city_df){
+  
+  city_summary = 
+    city_df %>% 
+    summarize(
+      unsolved = sum(resolution == "unsolved"), 
+      n = n()
+) 
+  
+city_test = 
+  prop.test(
+    x = city_summary %>% pull(unsolved),
+    n = city_summary %>% pull(n))
+  
+  return(city_test)
+
+}
+ 
+prop_test_function(baltimore_df)
+
+homicide_df %>%
+  filter(city_state == "AlbuquerqueNM") %>% 
+  prop_test_function()
+```
+
+Now, let's iterate across all cities.
+
+```{r}
+result_df = 
+  homicide_df %>%
+  nest(data = uid:resolution) %>%
+  mutate(
+    test_results = map(data, prop_test_function),
+    tidy_results = map(test_results, broom::tidy)
+  ) %>%
+  select(city_state, tidy_results) %>%
+  unnest(tidy_results)
+```
+
+```{r}
+result_df %>%
+  mutate(city_state = fct_reorder(city_state, estimate)) %>%
+  ggplot(aes(x = city_state, y = estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
