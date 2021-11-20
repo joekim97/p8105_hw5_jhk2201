@@ -2,7 +2,7 @@
 title: "hw5_jhk2201"
 author: "joseph Kim"
 date: "11/19/2021"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -13,10 +13,7 @@ library(tidyverse)
 ### Problem 1
 
 ##### Importing Dataset 
-
-
-
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 homicide_df = 
   read_csv("/Users/josephkim/Desktop/p8105_hw5_jhk2201/homicide-data.csv", na = c("", "Unknown")) %>%
   mutate(
@@ -35,7 +32,7 @@ The raw data is has 52,179 rows of data, with 12 variables.
 reported_date, lat, and lon are number variables, with the rest being characters. 
 
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 baltimore_df = homicide_df %>% 
     filter(city_state == "BaltimoreMD") 
 
@@ -58,7 +55,7 @@ baltimore_test %>%
 
 Iterating across cities
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 prop_test_function = function(city_df){
   
   city_summary = 
@@ -86,7 +83,7 @@ homicide_df %>%
 
 Now, let's iterate across all cities.
 
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 result_df = 
   homicide_df %>%
   nest(data = uid:resolution) %>%
@@ -98,12 +95,19 @@ result_df =
   unnest(tidy_results)
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 result_df %>%
   mutate(city_state = fct_reorder(city_state, estimate)) %>%
   ggplot(aes(x = city_state, y = estimate)) +
   geom_point() +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+### Problem 2:
+
+```{r}
+
+
 ```
 
