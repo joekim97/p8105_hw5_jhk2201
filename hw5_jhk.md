@@ -7,9 +7,21 @@ joseph Kim
 
 ##### Importing Dataset
 
+``` r
+homicide_df = 
+  read_csv("/Users/josephkim/Desktop/p8105_hw5_jhk2201/homicide-data.csv", na = c("", "Unknown")) %>%
+  mutate(
+    city_state = str_c(city,state),
+    resolution = case_when(
+      disposition == "Closed without arrest" ~ "unsolved",
+      disposition == "Open/No arrest" ~ "unsolved",
+      disposition == "Closed by arrest" ~ "solved"
+    )) %>%
+  relocate(city_state) %>%
+  filter(city_state != "TulsaAL")
+```
+
 The raw data is has 52,179 rows of data, with 12 variables.
-reported\_date, lat, and lon are number variables, with the rest being
-characters.
 
 ``` r
 baltimore_df = homicide_df %>% 
@@ -108,12 +120,18 @@ result_df %>%
 ``` r
 long_study_df = tibble(
   filename = list.files("./data")) %>% 
-  mutate(data = map(str_c("./data/", filename), read_csv)) %>% 
+  mutate(data = purrr::map(str_c("./data/", filename), read_csv)) %>% 
   unnest(data) %>% 
-  mutate( 
-    arm=substr(filename, 1, 3), 
-    subject_id=(substr(filename, 1, 6))) %>% 
-    select(arm, subject_id, everything(), -filename) 
+    separate(filename, c("Group", "Case", "csv")) %>% 
+    mutate(
+      Arm = recode(Group, con = "Control", exp = "Experimental")) %>% 
+  pivot_longer(week_1:week_8, 
+               names_to = "Week",
+               values_to = "Data",
+               names_prefix = "week_") %>% 
+  mutate(Week = as.numeric(Week)) %>% 
+  mutate(Case = as.numeric(Case)) %>% 
+  select(Arm, Case, Week, Data )
 ```
 
     ## Rows: 1 Columns: 8
@@ -317,19 +335,17 @@ long_study_df = tibble(
     ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 
 ``` r
-long_clean_df = 
-  long_study_df %>% 
-    pivot_longer(cols = "week_1":"week_8",
-               names_to = "week", 
-               values_to = "result"
-               ) %>% 
-    mutate(
-      week = str(replace(week, "week_", ""), 
-      week = as.numeric(week))) 
+plot_long = long_study_df %>% 
+    ggplot(aes(x=Week, y=Data, group = Case, color=Arm)) + geom_line() + facet_grid(~Arm) +
+    labs(
+      x = "Week", 
+      y = "Data point per Week",
+      title = "Longitudinal Data for Treatment Arms") 
+
+plot_long
 ```
 
-    ##  Named chr [1:161] "week_1" "week_2" "week_3" "week_4" "week_5" "week_6" ...
-    ##  - attr(*, "names")= chr [1:161] "" "" "" "" ...
+![](hw5_jhk_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
 ### Problem 3:
 
@@ -341,7 +357,7 @@ iris_with_missing = iris %>%
   mutate(Species = as.character(Species))
 ```
 
-Writing function
+##### Writing Function
 
 ``` r
 iris_missing_function = function(x) {

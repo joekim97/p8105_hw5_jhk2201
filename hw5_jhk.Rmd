@@ -8,13 +8,14 @@ output: github_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(purrr)
+library(ggplot2)
 
 ```
 
 ### Problem 1
 
 ##### Importing Dataset 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE}
 homicide_df = 
   read_csv("/Users/josephkim/Desktop/p8105_hw5_jhk2201/homicide-data.csv", na = c("", "Unknown")) %>%
   mutate(
@@ -30,7 +31,6 @@ homicide_df =
 ```
 
 The raw data is has 52,179 rows of data, with 12 variables. 
-reported_date, lat, and lon are number variables, with the rest being characters. 
 
 
 ```{r, message=FALSE, warning=FALSE}
@@ -110,27 +110,28 @@ result_df %>%
 ```{r}
 long_study_df = tibble(
   filename = list.files("./data")) %>% 
-  mutate(data = map(str_c("./data/", filename), read_csv)) %>% 
+  mutate(data = purrr::map(str_c("./data/", filename), read_csv)) %>% 
   unnest(data) %>% 
-  mutate( 
-    arm=substr(filename, 1, 3), 
-    subject_id=(substr(filename, 1, 6))) %>% 
-    select(arm, subject_id, everything(), -filename) 
-  
-
-long_clean_df = 
-  long_study_df %>% 
-    pivot_longer(cols = "week_1":"week_8",
-               names_to = "week", 
-               values_to = "result"
-               ) %>% 
+    separate(filename, c("Group", "Case", "csv")) %>% 
     mutate(
-      week = str(replace(week, "week_", ""), 
-      week = as.numeric(week))) 
+      Arm = recode(Group, con = "Control", exp = "Experimental")) %>% 
+  pivot_longer(week_1:week_8, 
+               names_to = "Week",
+               values_to = "Data",
+               names_prefix = "week_") %>% 
+  mutate(Week = as.numeric(Week)) %>% 
+  mutate(Case = as.numeric(Case)) %>% 
+  select(Arm, Case, Week, Data )
 
 
+plot_long = long_study_df %>% 
+    ggplot(aes(x=Week, y=Data, group = Case, color=Arm)) + geom_line() + facet_grid(~Arm) +
+    labs(
+      x = "Week", 
+      y = "Data point per Week",
+      title = "Longitudinal Data for Treatment Arms") 
 
-
+plot_long
 ```
 
 
@@ -145,7 +146,8 @@ iris_with_missing = iris %>%
 
 ```
 
-Writing function
+##### Writing Function
+
 ```{r}
 iris_missing_function = function(x) {
   if (is_numeric(x)) {
