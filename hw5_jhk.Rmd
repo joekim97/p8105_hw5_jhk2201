@@ -32,7 +32,6 @@ homicide_df =
 
 The raw data is has 52,179 rows of data, with 12 variables. 
 
-
 ```{r, message=FALSE, warning=FALSE}
 baltimore_df = homicide_df %>% 
     filter(city_state == "BaltimoreMD") 
@@ -54,7 +53,7 @@ baltimore_test %>%
 
 ```
 
-Iterating across cities
+##### Iterating across cities
 
 ```{r, message=FALSE, warning=FALSE}
 prop_test_function = function(city_df){
@@ -105,9 +104,13 @@ result_df %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
+-------
+
 ### Problem 2:
 
-```{r}
+##### Creating Data Frame, Iterating to read in Data, Tidy Data
+
+```{r, message=FALSE, warning=FALSE}
 long_study_df = tibble(
   filename = list.files("./data")) %>% 
   mutate(data = purrr::map(str_c("./data/", filename), read_csv)) %>% 
@@ -122,8 +125,11 @@ long_study_df = tibble(
   mutate(Week = as.numeric(Week)) %>% 
   mutate(Case = as.numeric(Case)) %>% 
   select(Arm, Case, Week, Data )
+```
 
+##### Creating Spaghetti Plot
 
+```{r, message=FALSE, warning=FALSE}
 plot_long = long_study_df %>% 
     ggplot(aes(x=Week, y=Data, group = Case, color=Arm)) + geom_line() + facet_grid(~Arm) +
     labs(
@@ -134,10 +140,14 @@ plot_long = long_study_df %>%
 plot_long
 ```
 
+The plot shows that the control data is not showing an obvious relationship
+between the weeks. The experimental group is showing that as the weeks progress, the data points are changing in a positive manner. Although we do not know what exactly the experiment being done is, its fairly clear that the treatment arm is showing increased data values per week. 
+
+------
 
 ### Problem 3: 
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 set.seed(10)
 
 iris_with_missing = iris %>% 
@@ -148,7 +158,7 @@ iris_with_missing = iris %>%
 
 ##### Writing Function
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 iris_missing_function = function(x) {
   if (is_numeric(x)) {
     mean_nonmissing = round(mean(x, na.rm = TRUE, 1))
@@ -158,13 +168,18 @@ iris_missing_function = function(x) {
   return(x)
 }
 
+```
+
+##### Applying Function to Missing Values in Dataframe 
+
+```{r, message=FALSE, warning=FALSE}
 iris_fillin = 
   map_df(iris_with_missing, iris_missing_function) %>% 
   as.tibble()
 
 knitr::kable(iris_fillin)
 
-view(iris_fillin)
+head(iris_fillin)
 
 ```
 
